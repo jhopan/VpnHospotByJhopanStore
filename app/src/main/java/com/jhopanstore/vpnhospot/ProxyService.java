@@ -8,7 +8,11 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+
+import java.util.Locale;
 
 public class ProxyService extends Service {
     static final String ACTION_START = "com.jhopanstore.vpnhospot.START";
@@ -18,14 +22,27 @@ public class ProxyService extends Service {
     static final String EXTRA_COUNT_TRAFFIC = "count_traffic";
 
     private static final String CHANNEL_ID = "proxy";
+    private static final long NOTIFICATION_UPDATE_INTERVAL_MS = 2000;
+
     private final LocalBinder binder = new LocalBinder();
     private final TrafficCounter counter = new TrafficCounter();
+    private final Handler notificationHandler = new Handler(Looper.getMainLooper());
     private ProxyServer httpServer;
     private ProxyServer socksServer;
     private volatile boolean running;
     private volatile String lastMessage = "Proxy belum berjalan";
     private volatile int httpPort = 8080;
     private volatile int socksPort = 1080;
+
+    private final Runnable notificationUpdater = new Runnable() {
+        @Override
+        public void run() {
+            if (running) {
+                updateNotification();
+                notificationHandler.postDelayed(this, NOTIFICATION_UPDATE_INTERVAL_MS);
+            }
+        }
+    };
 
     public final class LocalBinder extends Binder {
         ProxyService getService() {
@@ -106,6 +123,7 @@ public class ProxyService extends Service {
             running = true;
             lastMessage = "HTTP :" + httpPort + " dan SOCKS5 :" + socksPort + " berjalan";
             updateNotification();
+            notificationHandler.postDelayed(notificationUpdater, NOTIFICATION_UPDATE_INTERVAL_MS);
         } catch (Exception e) {
             stopProxy();
             lastMessage = "Gagal start proxy: " + e.getMessage();
@@ -114,6 +132,7 @@ public class ProxyService extends Service {
 
     private synchronized void stopProxy() {
         running = false;
+        notificationHandler.removeCallbacks(notificationUpdater);
         if (httpServer != null) httpServer.stop();
         if (socksServer != null) socksServer.stop();
         httpServer = null;
@@ -136,7 +155,7 @@ public class ProxyService extends Service {
         return builder
                 .setSmallIcon(android.R.drawable.stat_sys_upload_done)
                 .setContentTitle("VPN Hospot Proxy")
-                .setContentText(lastMessage)
+                .setContentText(buildNotificationText())
                 .setContentIntent(contentIntent)
                 .setOngoing(running)
                 .addAction(android.R.drawable.ic_media_pause, "Stop", stopPending)
@@ -156,5 +175,21 @@ public class ProxyService extends Service {
                 CHANNEL_ID, "Proxy", NotificationManager.IMPORTANCE_LOW);
         channel.setDescription("Proxy berjalan di background");
         manager.createNotificationChannel(channel);
+    }
+
+    private String buildNotificationText() {
+        StringBuilder sb = new StringBuilder(lastMessage);
+        if (running && counter.isEnabled()) {
+            sb.append("\n\u2191 ").append(formatBytes(counter.uploadBytes()))
+              .append("  \u2193 ").append(formatBytes(counter.downloadBytes()));
+        }
+        return sb.toString();
+    }
+
+    static String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024L * 1024) return String.format(Locale.US, "%.1f KB", bytes / 1024.0);
+        if (bytes < 1024L * 1024 * 1024) return String.format(Locale.US, "%.2f MB", bytes / (1024.0 * 1024));
+        return String.format(Locale.US, "%.2f GB", bytes / (1024.0 * 1024 * 1024));
     }
 }

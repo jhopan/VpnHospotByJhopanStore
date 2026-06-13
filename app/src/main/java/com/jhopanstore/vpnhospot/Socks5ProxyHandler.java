@@ -98,24 +98,24 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
 
             // ── Dispatch command ──
             if (command == CMD_CONNECT) {
-                Log.i(TAG, "TCP CONNECT " + host + ":" + port + " from " + clientId);
+                logInfo( "TCP CONNECT " + host + ":" + port + " from " + clientId);
                 remote = handleConnect(client, out, host, port, counter);
             } else if (command == CMD_UDP_ASSOCIATE) {
-                Log.i(TAG, "UDP ASSOCIATE request from " + clientId);
+                logInfo( "UDP ASSOCIATE request from " + clientId);
                 udpRelay = handleUdpAssociate(client, out, counter, clientId);
             } else {
                 Log.w(TAG, "Unsupported command 0x" + Integer.toHexString(command) + " from " + clientId);
                 sendError(out, 0x07);
             }
         } catch (SocketTimeoutException e) {
-            Log.d(TAG, "Timeout: " + clientId);
+            logDebug( "Timeout: " + clientId);
         } catch (Exception e) {
             Log.e(TAG, "Handler error: " + clientId + " — " + e.getMessage());
         } finally {
             BytePump.close(client);
             if (remote != null) BytePump.close(remote);
             if (udpRelay != null && !udpRelay.isClosed()) udpRelay.close();
-            Log.d(TAG, "Connection closed: " + clientId);
+            logDebug( "Connection closed: " + clientId);
         }
     }
 
@@ -167,13 +167,13 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
         internetSocket.setSoTimeout(5000);
         bindToInternetNetwork(internetSocket);
 
-        Log.i(TAG, "UDP ASSOCIATE two-socket: clientSock=0.0.0.0:" + relayPort
+        logInfo( "UDP ASSOCIATE two-socket: clientSock=0.0.0.0:" + relayPort
                 + " internetSock=0.0.0.0:" + internetSocket.getLocalPort());
 
         // Dapatkan IP LAN/WiFi server yang bisa dijangkau client
         InetAddress serverAddr = getServerBindAddress(client);
 
-        Log.i(TAG, "UDP ASSOCIATE relay=" + serverAddr.getHostAddress() + ":" + relayPort + " for " + clientId);
+        logInfo( "UDP ASSOCIATE relay=" + serverAddr.getHostAddress() + ":" + relayPort + " for " + clientId);
 
         // Reply: success + relay address/port
         byte[] addrBytes = serverAddr.getAddress();
@@ -211,7 +211,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                 alive.set(false);
                 clientSocket.close();
                 internetSocket.close();
-                Log.i(TAG, "UDP ASSOCIATE ended: fwd=" + fwdCount.get() + " bwd=" + bwdCount.get()
+                logInfo( "UDP ASSOCIATE ended: fwd=" + fwdCount.get() + " bwd=" + bwdCount.get()
                         + " for " + clientId);
             }
         }, "udp-tcp-mon");
@@ -229,7 +229,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                     // Learn client address
                     if (clientUdp[0] == null) {
                         clientUdp[0] = new InetSocketAddress(pkt.getAddress(), pkt.getPort());
-                        Log.i(TAG, "UDP client learned: " + clientUdp[0]);
+                        logInfo( "UDP client learned: " + clientUdp[0]);
                     }
 
                     UdpFrame frame = parseUdpFrame(pkt.getData(), pkt.getLength());
@@ -280,7 +280,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                     portToClient.put(frame.port, clientUdp[0]);
 
                     if (fwd <= 5 || fwd % 50 == 0) {
-                        Log.i(TAG, "UDP FWD #" + fwd + " → " + frame.host + "(" + dstAddr.getHostAddress()
+                        logInfo( "UDP FWD #" + fwd + " → " + frame.host + "(" + dstAddr.getHostAddress()
                                 + "):" + frame.port + " len=" + frame.data.length);
                     }
                 } catch (SocketTimeoutException e) {
@@ -317,7 +317,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                         long bwd = bwdCount.incrementAndGet();
 
                         if (bwd <= 5 || bwd % 50 == 0) {
-                            Log.i(TAG, "UDP BWD #" + bwd + " ← " + srcKey + " len=" + pkt.getLength());
+                            logInfo( "UDP BWD #" + bwd + " ← " + srcKey + " len=" + pkt.getLength());
                         }
                     } else {
                         Log.w(TAG, "UDP BWD dropped: no mapping for " + srcKey);
@@ -422,6 +422,16 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
     // Helpers
     // ──────────────────────────────────────────────
 
+    /** Debug-level log — only emitted in debug builds. */
+    private static void logDebug(String msg) {
+        if (BuildConfig.DEBUG) Log.d(TAG, msg);
+    }
+
+    /** Info-level log — only emitted in debug builds (verbose traffic info). */
+    private static void logInfo(String msg) {
+        if (BuildConfig.DEBUG) Log.i(TAG, msg);
+    }
+
     /**
      * Dapatkan IP LAN/WiFi server yang bisa dijangkau oleh client.
      * Prioritas: IP dari interface yang sama dengan client, fallback ke IP non-loopback pertama.
@@ -455,7 +465,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                         if (myBytes[0] == clientBytes[0]
                                 && myBytes[1] == clientBytes[1]
                                 && myBytes[2] == clientBytes[2]) {
-                            Log.d(TAG, "Found matching LAN IP: " + addr.getHostAddress()
+                            logDebug( "Found matching LAN IP: " + addr.getHostAddress()
                                     + " on " + iface.getDisplayName());
                             return addr;
                         }
@@ -477,7 +487,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                 while (addrs.hasMoreElements()) {
                     InetAddress addr = addrs.nextElement();
                     if (addr instanceof Inet4Address && !addr.isLoopbackAddress()) {
-                        Log.d(TAG, "Fallback IP: " + addr.getHostAddress()
+                        logDebug( "Fallback IP: " + addr.getHostAddress()
                                 + " on " + iface.getDisplayName());
                         return addr;
                     }
@@ -527,7 +537,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                         String iface = lp.getInterfaceName();
                         // Hotspot interface biasanya wlan0 (tapi bisa juga jadi tethering)
                         // Mobile data biasanya rmnet_data0 atau similar
-                        Log.d(TAG, "Network " + network + ": iface=" + iface
+                        logDebug( "Network " + network + ": iface=" + iface
                                 + " internet=" + hasInternet + " validated=" + isValidated);
                     }
                 } catch (Exception ignored) {}
@@ -536,7 +546,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                     bestNetwork = network;
                     // Prefer mobile data (TRANSPORT_CELLULAR) over WiFi if both available
                     if (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                        Log.i(TAG, "bindToInternetNetwork: using cellular network " + network);
+                        logInfo( "bindToInternetNetwork: using cellular network " + network);
                         break;
                     }
                 }
@@ -544,7 +554,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
 
             if (bestNetwork != null) {
                 bestNetwork.bindSocket(socket);
-                Log.i(TAG, "bindToInternetNetwork: bound to network " + bestNetwork);
+                logInfo( "bindToInternetNetwork: bound to network " + bestNetwork);
             } else {
                 Log.w(TAG, "bindToInternetNetwork: no suitable internet network found");
             }
