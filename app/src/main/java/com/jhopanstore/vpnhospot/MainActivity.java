@@ -168,6 +168,11 @@ public class MainActivity extends Activity {
         guide.setOnClickListener(v -> showConnectionGuide());
         root.addView(guide, marginTop(matchWrap(), 8));
 
+        Button socks5Guide = button("Cara Konek SOCKS5");
+        socks5Guide.setBackgroundColor(Color.rgb(70, 110, 130));
+        socks5Guide.setOnClickListener(v -> showSocks5Guide());
+        root.addView(socks5Guide, marginTop(matchWrap(), 8));
+
         statusText = text("", 15, true);
         root.addView(statusText, marginTop(matchWrap(), 20));
 
@@ -357,6 +362,49 @@ public class MainActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle("Panduan Koneksi HTTP Proxy")
+                .setMessage(guide)
+                .setPositiveButton("Tutup", null)
+                .show();
+    }
+
+    private void showSocks5Guide() {
+        int socksPort = bound && service != null && service.isRunning() ? service.socksPort() : parsePort(socksPortInput, 1080);
+        String guide = "SOCKS5 Proxy adalah protokol yang lebih canggih dari HTTP Proxy. "
+                + "Support TCP + UDP, cocok untuk VPN, gaming, dan aplikasi yang butuh UDP.\n\n"
+                + "═══ CARA KONEK ═══\n\n"
+                + "📌 1) Pakai Socks Client App (RECOMMENDED)\n"
+                + "- Install app \"Socks Client by JhopanStore\" di HP client.\n"
+                + "- Hubungkan HP client ke hotspot/USB tether server.\n"
+                + "- Buka Socks Client, isi:\n"
+                + "  • Host: IP server (lihat di app ini)\n"
+                + "  • Port: " + socksPort + "\n"
+                + "  • Username & Password: kosongkan (kecuali server pakai auth)\n"
+                + "- Tekan \"Connect Socks VPN\" → izinkan VPN Android.\n"
+                + "- SEMUA trafik (TCP + UDP) otomatis lewat SOCKS5!\n\n"
+                + "📌 2) Dari Aplikasi yang Support SOCKS5\n"
+                + "Beberapa aplikasi punya setting SOCKS5 bawaan:\n"
+                + "- Telegram: Settings > Data & Storage > Use Proxy > Add SOCKS5\n"
+                + "- Firefox: Settings > Network Settings > Manual proxy > SOCKS Host\n"
+                + "- Socks IP: IP server, Port: " + socksPort + "\n\n"
+                + "📌 3) Dari PC/Laptop\n"
+                + "- Windows: Gunakan app seperti Proxifier atau SocksCap64\n"
+                + "- Linux: proxychains4 atau tsocks\n"
+                + "  $ export ALL_PROXY=socks5://IP:" + socksPort + "\n"
+                + "- macOS: sama seperti HTTP proxy tapi pilih SOCKS Proxy\n\n"
+                + "═══ KEUNGGULAN SOCKS5 ═══\n\n"
+                + "• TCP + UDP (HTTP proxy hanya TCP)\n"
+                + "• DNS remote via tunnel (anti DNS leak)\n"
+                + "• Support semua protokol (game, VoIP, streaming)\n"
+                + "• Lebih cepat untuk UDP-heavy apps\n\n"
+                + "═══ TROUBLESHOOTING ═══\n\n"
+                + "❌ Failed connect → Cek HP client terhubung ke hotspot server\n"
+                + "❌ Auth failed → Pastikan username/password benar\n"
+                + "❌ UDP tidak jalan → Server harus support UDP Associate\n"
+                + "❌ Internet lambat → Cek sinyal data HP server\n\n"
+                + "💡 Tips: Untuk gaming, pastikan server punya sinyal data yang kuat!";
+
+        new AlertDialog.Builder(this)
+                .setTitle("Panduan Koneksi SOCKS5")
                 .setMessage(guide)
                 .setPositiveButton("Tutup", null)
                 .show();
