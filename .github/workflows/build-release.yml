@@ -52,9 +52,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/release/*.apk
-          name: "VPN Hospot v${{ env.VERSION }}"
+          name: "VPN Hospot ${{ env.VERSION }}"
           body: |
-            ## VPN Hospot v${{ env.VERSION }}
+            ## VPN Hospot ${{ env.VERSION }}
 
             ### Download APK
             
