@@ -62,11 +62,11 @@ jobs:
 
             ### Download APK
             
-            | File | Arsitektur | Keterangan |
-            |------|-----------|------------|
-            | `VpnHospot-${{ env.VERSION }}-arm64-v8a.apk` | 64-bit | HP modern (95% HP) |
-            | `VpnHospot-${{ env.VERSION }}-armeabi-v7a.apk` | 32-bit | HP lama |
-            | `VpnHospot-${{ env.VERSION }}-universal.apk` | Semua | Universal |
+            | File | Architecture | Description |
+            |------|-------------|-------------|
+            | `VpnHospot-${{ env.VERSION }}-arm64-v8a.apk` | 64-bit | Modern devices (95% of phones) |
+            | `VpnHospot-${{ env.VERSION }}-armeabi-v7a.apk` | 32-bit | Older devices |
+            | `VpnHospot-${{ env.VERSION }}-universal.apk` | All | Universal build |
 
             ### What's New in ${{ env.VERSION }}
 
@@ -89,15 +89,24 @@ jobs:
 
             ### Installation
 
-            1. Download APK sesuai arsitektur HP Anda
-            2. Install APK di HP yang akan menjadi server proxy
-            3. (Optional) Jalankan aplikasi tunneling (Dark Tunnel, HTTP Injector, dll)
-            4. Buka VPN Hospot dan klik Start Proxy
-            5. Nyalakan hotspot atau USB tethering
-            6. Connect HP client ke hotspot/tethering
-            7. Set proxy manual di HP client:
-               - Hostname: IP server (lihat di app VPN Hospot)
-               - Port: 8080 (HTTP) atau 1080 (SOCKS5)
+            1. Download the APK matching your device architecture
+            2. Install the APK on the device that will act as the proxy server
+            3. (Optional) Run tunneling apps like Dark Tunnel, HTTP Injector, etc.
+            4. Open VPN Hospot and tap Start Proxy
+            5. Enable Wi-Fi hotspot or USB tethering from device settings
+            6. Connect client device to the hotspot/tethering
+            7. Set manual proxy on client device:
+               - Hostname: Server IP (shown in VPN Hospot app)
+               - Port: 8080 (HTTP) or 1080 (SOCKS5)
+
+            ### Features
+
+            - **HTTP Proxy** - HTTP proxy for browsing and HTTP-compatible apps
+            - **SOCKS5 Proxy** - SOCKS5 proxy with TCP + UDP support
+            - **Wi-Fi Hotspot** - Share internet connection via hotspot
+            - **USB Tethering** - Share internet connection via USB
+            - **Traffic Counter** - Real-time download/upload monitoring
+            - **VPN-aware Routing** - Automatically route traffic through VPN/TUN interface
 
             ### Developer
 
