@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.net.Uri;
 import android.provider.Settings;
 import android.text.InputType;
 import android.view.Gravity;
@@ -51,8 +52,7 @@ public class MainActivity extends Activity {
     private TextView addressText;
     private TextView downloadValue;
     private TextView uploadValue;
-    private Button startButton;
-    private Button stopButton;
+    private Button toggleButton;
     private SharedPreferences prefs;
 
     private long lastAddressRefreshMs = 0;
@@ -115,12 +115,6 @@ public class MainActivity extends Activity {
         root.setPadding(dp(20), dp(20), dp(20), dp(24));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
 
-        ImageView logo = new ImageView(this);
-        logo.setImageResource(getResources().getIdentifier("logo_jhopanstore", "drawable", getPackageName()));
-        logo.setAdjustViewBounds(true);
-        logo.setMaxHeight(dp(110));
-        root.addView(logo, new LinearLayout.LayoutParams(-1, dp(110)));
-
         TextView title = text("VPN Hospot", 28, true);
         title.setGravity(Gravity.CENTER);
         root.addView(title, matchWrap());
@@ -150,18 +144,13 @@ public class MainActivity extends Activity {
         });
         root.addView(trafficSwitch, marginTop(matchWrap(), 12));
 
-        startButton = button("Start Proxy");
-        startButton.setOnClickListener(v -> startProxy());
-        root.addView(startButton, marginTop(matchWrap(), 14));
-
-        stopButton = button("Stop Proxy");
-        stopButton.setOnClickListener(v -> stopProxy());
-        root.addView(stopButton, marginTop(matchWrap(), 8));
-
-        Button tether = button("Buka Pengaturan Tethering");
-        tether.setBackgroundColor(Color.rgb(43, 91, 224));
-        tether.setOnClickListener(v -> openTetherSettings());
-        root.addView(tether, marginTop(matchWrap(), 8));
+        toggleButton = button("Start Proxy");
+        toggleButton.setOnClickListener(v -> {
+            boolean running = bound && service != null && service.isRunning();
+            if (running) stopProxy();
+            else startProxy();
+        });
+        root.addView(toggleButton, marginTop(matchWrap(), 14));
 
         Button guide = button("Cara Konek HTTP Proxy");
         guide.setBackgroundColor(Color.rgb(86, 96, 111));
@@ -172,6 +161,16 @@ public class MainActivity extends Activity {
         socks5Guide.setBackgroundColor(Color.rgb(70, 110, 130));
         socks5Guide.setOnClickListener(v -> showSocks5Guide());
         root.addView(socks5Guide, marginTop(matchWrap(), 8));
+
+        Button developer = button("Info Developer");
+        developer.setBackgroundColor(Color.rgb(32, 36, 46));
+        developer.setOnClickListener(v -> showDeveloperInfo());
+        root.addView(developer, marginTop(matchWrap(), 8));
+
+        TextView footer = text("Powered by JhopanStore", 12, false);
+        footer.setGravity(Gravity.CENTER);
+        footer.setTextColor(TEXT_SECONDARY);
+        root.addView(footer, marginTop(matchWrap(), 14));
 
         statusText = text("", 15, true);
         root.addView(statusText, marginTop(matchWrap(), 20));
@@ -302,11 +301,9 @@ public class MainActivity extends Activity {
     }
 
     private void applyButtonStates(boolean running) {
-        startButton.setEnabled(!running);
-        startButton.setBackgroundColor(running ? GRAY : GREEN);
-
-        stopButton.setEnabled(running);
-        stopButton.setBackgroundColor(running ? RED : GRAY);
+        toggleButton.setText(running ? "Stop Proxy" : "Start Proxy");
+        toggleButton.setBackgroundColor(running ? RED : GREEN);
+        toggleButton.setEnabled(true);
 
         httpPortInput.setEnabled(!running);
         socksPortInput.setEnabled(!running);
@@ -410,18 +407,35 @@ public class MainActivity extends Activity {
                 .show();
     }
 
-    private void openTetherSettings() {
-        Intent intent = new Intent("android.settings.TETHER_SETTINGS");
+    private void showDeveloperInfo() {
+        String version = "v1.0.0";
         try {
-            startActivity(intent);
+            version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
         } catch (Exception ignored) {
-            startActivity(new Intent(Settings.ACTION_WIRELESS_SETTINGS));
+        }
+        String message = "VPN Hotspot by JhopanStore\n"
+                + "Version: " + version + "\n\n"
+                + "Telegram: https://t.me/jhopan_05\n"
+                + "Website: https://jhopanstore.my.id";
+        new AlertDialog.Builder(this)
+                .setTitle("Info Developer")
+                .setMessage(message)
+                .setPositiveButton("Telegram", (dialog, which) -> openUrl("https://t.me/jhopan_05"))
+                .setNegativeButton("Website", (dialog, which) -> openUrl("https://jhopanstore.my.id"))
+                .setNeutralButton("Tutup", null)
+                .show();
+    }
+
+    private void openUrl(String url) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (Exception ignored) {
         }
     }
 
     private void requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= 33 &&
-                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 20);
         }
     }

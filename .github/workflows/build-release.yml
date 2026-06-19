@@ -55,12 +55,54 @@ jobs:
           name: "VPN Hospot v${{ env.VERSION }}"
           body: |
             ## VPN Hospot v${{ env.VERSION }}
-            
+
             ### Download APK
+            
             | File | Arsitektur | Keterangan |
             |------|-----------|------------|
             | `VpnHospot-v${{ env.VERSION }}-arm64-v8a.apk` | 64-bit | HP modern (95% HP) |
             | `VpnHospot-v${{ env.VERSION }}-armeabi-v7a.apk` | 32-bit | HP lama |
             | `VpnHospot-v${{ env.VERSION }}-universal.apk` | Semua | Universal |
+
+            ### What's New in v${{ env.VERSION }}
+
+            **HTTP Proxy Fixed & Stabilized**
+            - Fixed bug where HTTP proxy connections were accepted but not processed (executor worker not running)
+            - Changed from ThreadPoolExecutor to direct thread-per-connection for reliable handler execution
+            - Added VPN-aware network binding to route traffic through Dark Tunnel/TUN interface
+            - HTTP proxy now prioritizes VPN network over cellular for correct routing
+
+            **UI Improvements**
+            - Added splash screen with JhopanStore branding
+            - Combined Start/Stop into single toggle button
+            - Added Info Developer popup with version info
+            - Removed unnecessary UI elements for cleaner interface
+
+            **Technical Improvements**
+            - Enhanced logging for better debugging
+            - Improved network detection and binding logic
+            - Better error handling and crash recovery
+
+            ### Installation
+
+            1. Download APK sesuai arsitektur HP Anda
+            2. Install APK di HP yang akan menjadi server proxy
+            3. (Optional) Jalankan aplikasi tunneling (Dark Tunnel, HTTP Injector, dll)
+            4. Buka VPN Hospot dan klik Start Proxy
+            5. Nyalakan hotspot atau USB tethering
+            6. Connect HP client ke hotspot/tethering
+            7. Set proxy manual di HP client:
+               - Hostname: IP server (lihat di app VPN Hospot)
+               - Port: 8080 (HTTP) atau 1080 (SOCKS5)
+
+            ### Developer
+
+            **JhopanStore**
+            - Telegram: https://t.me/jhopan_05
+            - Website: https://jhopanstore.my.id
+
+            ---
+
+            **Full Changelog**: https://github.com/jhopan/VpnHospotByJhopanStore/commits/v${{ env.VERSION }}
           draft: false
           prerelease: false
