@@ -1,5 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="brand_navy">#17253A</color>
-    <color name="brand_green">#12B886</color>
-    <color name="brand_bg">#F6F8FA</color>
+    <color name="bg_dark">#0F1115</color>
+    <color name="card_bg">#1A1D24</color>
+    <color name="primary_accent">#00E5A8</color>
+    <color name="secondary_accent">#00A3FF</color>
+    <color name="danger">#FF4D4D</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#A0A0A0</color>
+    <color name="text_muted">#606672</color>
+    <color name="border_subtle">#2A2D35</color>
 </resources>

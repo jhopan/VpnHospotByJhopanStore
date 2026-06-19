@@ -11,10 +11,12 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 
 import java.util.Locale;
 
 public class ProxyService extends Service {
+    private static final String TAG = "ProxyService";
     static final String ACTION_START = "com.jhopanstore.vpnhospot.START";
     static final String ACTION_STOP = "com.jhopanstore.vpnhospot.STOP";
     static final String EXTRA_HTTP_PORT = "http_port";
@@ -113,10 +115,11 @@ public class ProxyService extends Service {
     }
 
     private synchronized void startProxy(int httpPort, int socksPort) {
+        Log.e(TAG, "TRACE SERVICE START_PROXY http=" + httpPort + " socks=" + socksPort);
         stopProxy();
         try {
             counter.reset();
-            httpServer = new ProxyServer("http-proxy", httpPort, counter, new HttpProxyHandler());
+            httpServer = new ProxyServer("http-proxy", httpPort, counter, new HttpProxyHandler(this));
             socksServer = new ProxyServer("socks5-proxy", socksPort, counter, new Socks5ProxyHandler(this));
             httpServer.start();
             socksServer.start();

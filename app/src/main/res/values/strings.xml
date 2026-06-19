@@ -1,3 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">VPN Hospot</string>
+    <string name="app_name">VPN Hotspot</string>
+    <string name="app_subtitle">HTTP + SOCKS5 proxy for hotspot &amp; USB tethering</string>
+    <string name="powered_by">Powered by JhopanStore</string>
+    <string name="version">Version 1.0.0</string>
+    <string name="developer">JhopanStore</string>
 </resources>
