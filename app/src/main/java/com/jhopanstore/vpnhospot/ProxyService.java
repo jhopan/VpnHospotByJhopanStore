@@ -124,7 +124,7 @@ public class ProxyService extends Service {
             httpServer.start();
             socksServer.start();
             running = true;
-            lastMessage = "HTTP :" + httpPort + " dan SOCKS5 :" + socksPort + " berjalan";
+            lastMessage = "Running";
             updateNotification();
             notificationHandler.postDelayed(notificationUpdater, NOTIFICATION_UPDATE_INTERVAL_MS);
         } catch (Exception e) {
