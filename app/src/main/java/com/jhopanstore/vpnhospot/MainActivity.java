@@ -413,19 +413,22 @@ public class MainActivity extends Activity {
                 + "Website: https://jhopanstore.my.id\n"
                 + "Trakteer: https://trakteer.id/jhopan";
         
-        String[] options = {"Telegram", "Website", "Trakteer"};
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Info Developer")
                 .setMessage(message)
-                .setItems(options, (dialog, which) -> {
-                    switch (which) {
-                        case 0: openUrl("https://t.me/jhopan_05"); break;
-                        case 1: openUrl("https://jhopanstore.my.id"); break;
-                        case 2: openUrl("https://trakteer.id/jhopan"); break;
-                    }
-                })
-                .setPositiveButton("Tutup", null)
-                .show();
+                .setPositiveButton("Telegram", (d, w) -> openUrl("https://t.me/jhopan_05"))
+                .setNegativeButton("Website", (d, w) -> openUrl("https://jhopanstore.my.id"))
+                .setNeutralButton("Trakteer", (d, w) -> openUrl("https://trakteer.id/jhopan"))
+                .create();
+        
+        dialog.setOnShowListener(d -> {
+            AlertDialog alert = (AlertDialog) d;
+            alert.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(GREEN);
+            alert.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.rgb(70, 130, 180));
+            alert.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(Color.rgb(220, 80, 80));
+        });
+        
+        dialog.show();
     }
 
     private void openUrl(String url) {
