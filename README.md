@@ -204,6 +204,7 @@ Enable/disable real-time traffic monitoring via the toggle switch in the app.
 **JhopanStore**
 - **Telegram:** [@jhopan_05](https://t.me/jhopan_05)
 - **Website:** [jhopanstore.my.id](https://jhopanstore.my.id)
+- **Support:** [trakteer.id/jhopan](https://trakteer.id/jhopan)
 
 ## License
 
