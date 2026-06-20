@@ -205,14 +205,6 @@ Enable/disable real-time traffic monitoring via the toggle switch in the app.
 - **Telegram:** [@jhopan_05](https://t.me/jhopan_05)
 - **Website:** [jhopanstore.my.id](https://jhopanstore.my.id)
 
-## Support
-
-Love VPN Hospot? Support the development!
-
-[![Trakteer](https://img.shields.io/badge/Trakteer-Support%20Developer-red?style=for-the-badge)](https://trakteer.id/jhopan)
-
-Your support helps maintain and improve this project. Every contribution is appreciated!
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
