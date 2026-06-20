@@ -265,7 +265,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                     try {
                         dstAddr = InetAddress.getByName(frame.host);
                     } catch (Exception e) {
-                        //                         Log.w(TAG, "UDP DNS resolve failed: " + frame.host);
+                        // if (alive.get()) Log.w(TAG, "UDP FWD error: " + e.getMessage());
                         continue;
                     }
 
@@ -314,7 +314,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                 } catch (SocketTimeoutException e) {
                     // normal
                 } catch (Exception e) {
-                    if (alive.get()) Log.w(TAG, "UDP FWD error: " + e.getMessage());
+                    // if (alive.get()) Log.w(TAG, "UDP FWD error: " + e.getMessage());
                 }
             }
         }, "udp-fwd");
@@ -389,7 +389,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                         lastLogTime = now;
                     }
                 } catch (Exception e) {
-                    if (alive.get()) Log.w(TAG, "UDP BWD error: " + e.getMessage());
+                    // if (alive.get()) Log.w(TAG, "UDP BWD error: " + e.getMessage());
                 }
             }
         }, "udp-bwd");
@@ -501,12 +501,11 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
 
     /** Debug-level log — only emitted in debug builds. */
     private static void logDebug(String msg) {
-        if (BuildConfig.DEBUG) Log.d(TAG, msg);
+        // if (BuildConfig.DEBUG) Log.d(TAG, msg);
     }
 
-    /** Info-level log — only emitted in debug builds (verbose traffic info). */
     private static void logInfo(String msg) {
-        if (BuildConfig.DEBUG) Log.i(TAG, msg);
+        // if (BuildConfig.DEBUG) Log.i(TAG, msg);
     }
 
     /**
