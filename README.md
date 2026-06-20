@@ -6,17 +6,9 @@
 *Share your VPN connection via Wi-Fi Hotspot and USB Tethering*
 
 [![Release](https://img.shields.io/github/v/release/jhopan/VpnHospotByJhopanStore?style=for-the-badge&color=blue)](https://github.com/jhopan/VpnHospotByJhopanStore/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/jhopan/VpnHospotByJhopanStore/total?style=for-the-badge&color=green)](https://github.com/jhopan/VpnHospotByJhopanStore/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
-[![Android](https://img.shields.io/badge/android-5.0+-green?style=for-the-badge&logo=android)](#requirements)
 [![Java](https://img.shields.io/badge/java-17-orange?style=for-the-badge&logo=openjdk)](#requirements)
-[![Last Commit](https://img.shields.io/github/last-commit/jhopan/VpnHospotByJhopanStore?style=for-the-badge&color=purple)](https://github.com/jhopan/VpnHospotByJhopanStore/commits/main)
-[![Stars](https://img.shields.io/github/stars/jhopan/VpnHospotByJhopanStore?style=for-the-badge&color=yellow)](https://github.com/jhopan/VpnHospotByJhopanStore/stargazers)
-[![Forks](https://img.shields.io/github/forks/jhopan/VpnHospotByJhopanStore?style=for-the-badge&color=orange)](https://github.com/jhopan/VpnHospotByJhopanStore/network/members)
-[![Issues](https://img.shields.io/github/issues/jhopan/VpnHospotByJhopanStore?style=for-the-badge&color=red)](https://github.com/jhopan/VpnHospotByJhopanStore/issues)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](https://github.com/jhopan/VpnHospotByJhopanStore/pulls)
-[![Maintenance](https://img.shields.io/badge/maintained-yes-green?style=for-the-badge)](https://github.com/jhopan/VpnHospotByJhopanStore/graphs/commit-activity)
-[![Build](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/jhopan/VpnHospotByJhopanStore/actions)
+[![Android](https://img.shields.io/badge/android-5.0+-green?style=for-the-badge&logo=android)](#requirements)
 
 </div>
 
