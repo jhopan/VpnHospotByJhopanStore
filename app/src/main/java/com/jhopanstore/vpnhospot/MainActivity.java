@@ -119,11 +119,6 @@ public class MainActivity extends Activity {
         title.setGravity(Gravity.CENTER);
         root.addView(title, matchWrap());
 
-        TextView subtitle = text("HTTP + SOCKS5 untuk Wi-Fi hotspot dan USB tethering", 14, false);
-        subtitle.setGravity(Gravity.CENTER);
-        subtitle.setTextColor(TEXT_SECONDARY);
-        root.addView(subtitle, matchWrap());
-
         LinearLayout ports = row();
         httpPortInput = portInput("8080", prefs.getInt("http_port", 8080));
         socksPortInput = portInput("1080", prefs.getInt("socks_port", 1080));
@@ -262,8 +257,9 @@ public class MainActivity extends Activity {
 
     private void updateUi() {
         boolean running = bound && service != null && service.isRunning();
-        String message = bound && service != null ? service.lastMessage() : "Proxy belum berjalan";
-        statusText.setText("Status: " + message);
+        
+        // Status simpel
+        statusText.setText("Status: " + (running ? "Running" : "Stop"));
 
         applyButtonStates(running);
 
@@ -281,9 +277,7 @@ public class MainActivity extends Activity {
             int activeSocksPort = running && service != null ? service.socksPort() : parsePort(socksPortInput, 1080);
             List<InterfaceDetector.HostEntry> hosts = InterfaceDetector.listProxyHosts();
             StringBuilder builder = new StringBuilder();
-            builder.append(running
-                    ? "Proxy aktif, hanya untuk Wi-Fi hotspot & USB tethering:\n"
-                    : "Preview (Wi-Fi hotspot & USB tethering saja):\n");
+            builder.append("Proxy Aktif:\n");
             for (InterfaceDetector.HostEntry host : hosts) {
                 if (host.ip.equals("0.0.0.0")) {
                     builder.append("- ").append(host.label).append('\n');
@@ -291,7 +285,7 @@ public class MainActivity extends Activity {
                 }
                 builder.append("- ").append(host.label).append(" HTTP  : ")
                         .append(host.ip).append(':').append(activeHttpPort).append('\n');
-                builder.append("- ").append(host.label).append(" SOCKS5: ")
+                builder.append("  ").append(host.label).append(" SOCKS5: ")
                         .append(host.ip).append(':').append(activeSocksPort).append('\n');
             }
             addressText.setText(builder.toString());

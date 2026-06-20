@@ -104,13 +104,13 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                 logInfo( "UDP ASSOCIATE request from " + clientId);
                 udpRelay = handleUdpAssociate(client, out, counter, clientId);
             } else {
-                Log.w(TAG, "Unsupported command 0x" + Integer.toHexString(command) + " from " + clientId);
+                //                 Log.w(TAG, "Unsupported command 0x" + Integer.toHexString(command) + " from " + clientId);
                 sendError(out, 0x07);
             }
         } catch (SocketTimeoutException e) {
             logDebug( "Timeout: " + clientId);
         } catch (Exception e) {
-            Log.e(TAG, "Handler error: " + clientId + " — " + e.getMessage());
+            //             Log.e(TAG, "Handler error: " + clientId + " — " + e.getMessage());
         } finally {
             BytePump.close(client);
             if (remote != null) BytePump.close(remote);
@@ -127,11 +127,13 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                                   TrafficCounter counter) throws Exception {
         Socket remote;
         try {
-            remote = new Socket(host, port);
+            remote = new Socket();
+            bindToInternetNetwork(remote);
+            remote.connect(new InetSocketAddress(host, port), TIMEOUT_MS);
             remote.setTcpNoDelay(true);
             remote.setSoTimeout(TIMEOUT_MS);
         } catch (Exception e) {
-            Log.w(TAG, "TCP CONNECT failed: " + host + ":" + port + " — " + e.getMessage());
+            //             Log.w(TAG, "TCP CONNECT failed: " + host + ":" + port + " — " + e.getMessage());
             sendError(out, 0x05);
             return null;
         }
@@ -159,12 +161,12 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
         // ── TWO-SOCKET APPROACH ──
         // clientSocket: hotspot interface (menerima dari & kirim ke client)
         DatagramSocket clientSocket = new DatagramSocket();
-        clientSocket.setSoTimeout(5000);
+        clientSocket.setSoTimeout(30000); // 30 detik untuk game yang lambat
         int relayPort = clientSocket.getLocalPort();
 
         // internetSocket: cellular interface (kirim ke & terima dari internet)
         DatagramSocket internetSocket = new DatagramSocket();
-        internetSocket.setSoTimeout(5000);
+        internetSocket.setSoTimeout(30000); // 30 detik untuk server yang lambat
         bindToInternetNetwork(internetSocket);
 
         logInfo( "UDP ASSOCIATE two-socket: clientSock=0.0.0.0:" + relayPort
@@ -193,25 +195,49 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
         InetSocketAddress[] clientUdp = new InetSocketAddress[1];
         ConcurrentHashMap<String, InetSocketAddress> destToClient = new ConcurrentHashMap<>();
         ConcurrentHashMap<Integer, InetSocketAddress> portToClient = new ConcurrentHashMap<>();
+        ConcurrentHashMap<String, InetSocketAddress> ipToClient = new ConcurrentHashMap<>(); // NEW: IP-only mapping
         AtomicLong fwdCount = new AtomicLong(0);
         AtomicLong bwdCount = new AtomicLong(0);
+        AtomicLong lastUdpActivity = new AtomicLong(System.currentTimeMillis());
 
         // ── Thread 1: TCP monitor — detect when client disconnects ──
         Thread tcpMonitor = new Thread(() -> {
+            String reason = "unknown";
             try {
                 while (alive.get() && !client.isClosed()) {
                     try {
-                        if (client.getInputStream().read() == -1) break;
+                        int read = client.getInputStream().read();
+                        if (read == -1) {
+                            reason = "client closed connection";
+                            break;
+                        }
                     } catch (SocketTimeoutException e) {
-                        // normal
+                        // normal - continue monitoring
+                    } catch (java.io.IOException e) {
+                        reason = "client IO error: " + e.getMessage();
+                        break;
                     }
                 }
-            } catch (Exception ignored) {
+                if (!alive.get()) {
+                    reason = "alive flag set to false";
+                } else if (client.isClosed()) {
+                    reason = "client socket closed";
+                }
+            } catch (Exception e) {
+                reason = "monitor error: " + e.getMessage();
             } finally {
+                // Beberapa SOCKS5 client menutup TCP control connection saat UDP masih aktif.
+                // Jangan langsung matikan relay; tahan selama masih ada UDP activity.
+                long idleMs = System.currentTimeMillis() - lastUdpActivity.get();
+                if (fwdCount.get() > 0 && idleMs < 60_000) {
+                    reason = reason + "; keeping UDP relay alive, idleMs=" + idleMs;
+                    logInfo("UDP control closed but relay kept alive for " + clientId + ": " + reason);
+                    return;
+                }
                 alive.set(false);
                 clientSocket.close();
                 internetSocket.close();
-                logInfo( "UDP ASSOCIATE ended: fwd=" + fwdCount.get() + " bwd=" + bwdCount.get()
+                logInfo( "UDP ASSOCIATE ended [" + reason + "]: fwd=" + fwdCount.get() + " bwd=" + bwdCount.get()
                         + " for " + clientId);
             }
         }, "udp-tcp-mon");
@@ -239,7 +265,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                     try {
                         dstAddr = InetAddress.getByName(frame.host);
                     } catch (Exception e) {
-                        Log.w(TAG, "UDP DNS resolve failed: " + frame.host);
+                        //                         Log.w(TAG, "UDP DNS resolve failed: " + frame.host);
                         continue;
                     }
 
@@ -254,11 +280,11 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                             if (ipv4 != null) {
                                 dstAddr = ipv4;
                             } else {
-                                Log.w(TAG, "UDP SKIP IPv6: " + frame.host + " (no IPv4 fallback)");
+                                //                                 Log.w(TAG, "UDP SKIP IPv6: " + frame.host + " (no IPv4 fallback)");
                                 continue;
                             }
                         } catch (Exception e2) {
-                            Log.w(TAG, "UDP SKIP IPv6: " + frame.host);
+                            //                             Log.w(TAG, "UDP SKIP IPv6: " + frame.host);
                             continue;
                         }
                     }
@@ -268,16 +294,18 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                     try {
                         internetSocket.send(outPkt);
                     } catch (Exception sendErr) {
-                        Log.e(TAG, "UDP FWD FAIL → " + frame.host + "(" + dstAddr.getHostAddress()
-                                + "):" + frame.port + " — " + sendErr.getMessage());
+                        //                         Log.e(TAG, "UDP FWD FAIL → " + frame.host + "(" + dstAddr.getHostAddress()
+                        //                                 + "):" + frame.port + " — " + sendErr.getMessage());
                         continue;
                     }
                     counter.addUpload(frame.data.length);
+                    lastUdpActivity.set(System.currentTimeMillis());
                     long fwd = fwdCount.incrementAndGet();
 
                     String dstKey = dstAddr.getHostAddress() + ":" + frame.port;
                     destToClient.put(dstKey, clientUdp[0]);
                     portToClient.put(frame.port, clientUdp[0]);
+                    ipToClient.put(dstAddr.getHostAddress(), clientUdp[0]); // NEW: store IP-only mapping
 
                     if (fwd <= 5 || fwd % 50 == 0) {
                         logInfo( "UDP FWD #" + fwd + " → " + frame.host + "(" + dstAddr.getHostAddress()
@@ -296,16 +324,31 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
         // ── Thread 3: BACKWARD — internet response → wrap SOCKS5 frame → send to client ──
         Thread bwdThread = new Thread(() -> {
             byte[] buf = new byte[UDP_BUF_SIZE];
+            long receiveAttempts = 0;
+            long receiveTimeouts = 0;
+            long receiveSuccess = 0;
+            long lastLogTime = System.currentTimeMillis();
+            
             while (alive.get() && !internetSocket.isClosed()) {
                 try {
                     DatagramPacket pkt = new DatagramPacket(buf, buf.length);
+                    receiveAttempts++;
                     internetSocket.receive(pkt);
+                    receiveSuccess++;
 
                     String srcKey = pkt.getAddress().getHostAddress() + ":" + pkt.getPort();
+                    String srcIp = pkt.getAddress().getHostAddress();
 
+                    // Lookup dengan fallback strategy
                     InetSocketAddress targetClient = destToClient.get(srcKey);
                     if (targetClient == null) {
                         targetClient = portToClient.get(pkt.getPort());
+                    }
+                    if (targetClient == null) {
+                        targetClient = ipToClient.get(srcIp); // NEW: IP-only fallback
+                    }
+                    if (targetClient == null && clientUdp[0] != null) {
+                        targetClient = clientUdp[0]; // NEW: single-client fallback
                     }
 
                     if (targetClient != null) {
@@ -314,16 +357,37 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                         DatagramPacket outPkt = new DatagramPacket(framed, framed.length, targetClient);
                         clientSocket.send(outPkt);
                         counter.addDownload(pkt.getLength());
+                        lastUdpActivity.set(System.currentTimeMillis());
                         long bwd = bwdCount.incrementAndGet();
 
                         if (bwd <= 5 || bwd % 50 == 0) {
                             logInfo( "UDP BWD #" + bwd + " ← " + srcKey + " len=" + pkt.getLength());
                         }
                     } else {
-                        Log.w(TAG, "UDP BWD dropped: no mapping for " + srcKey);
+                        //                         Log.w(TAG, "UDP BWD dropped: no mapping for " + srcKey);
+                    }
+                    
+                    // Log stats setiap 10 detik
+                    long now = System.currentTimeMillis();
+                    if (now - lastLogTime > 10000) {
+                        logInfo( "UDP BWD stats: attempts=" + receiveAttempts 
+                                + " success=" + receiveSuccess 
+                                + " timeouts=" + receiveTimeouts
+                                + " for " + clientId);
+                        lastLogTime = now;
                     }
                 } catch (SocketTimeoutException e) {
-                    // normal
+                    receiveTimeouts++;
+                    long now = System.currentTimeMillis();
+                    if (now - lastLogTime > 10000) {
+                        logInfo( "UDP BWD stats: attempts=" + receiveAttempts
+                                + " success=" + receiveSuccess
+                                + " timeouts=" + receiveTimeouts
+                                + " idleMs=" + (now - lastUdpActivity.get())
+                                + " alive=" + alive.get()
+                                + " for " + clientId);
+                        lastLogTime = now;
+                    }
                 } catch (Exception e) {
                     if (alive.get()) Log.w(TAG, "UDP BWD error: " + e.getMessage());
                 }
@@ -332,15 +396,28 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
         bwdThread.setDaemon(true);
         bwdThread.start();
 
-        // Block until ASSOCIATE ends (tcpMonitor will set alive=false and close sockets)
+        // Block until TCP control ends, then keep UDP relay alive until idle.
         try {
             tcpMonitor.join();
+            while (alive.get() && !clientSocket.isClosed() && !internetSocket.isClosed()) {
+                long idleMs = System.currentTimeMillis() - lastUdpActivity.get();
+                if (idleMs >= 60_000) {
+                    logInfo("UDP relay idle timeout: idleMs=" + idleMs
+                            + " fwd=" + fwdCount.get() + " bwd=" + bwdCount.get()
+                            + " for " + clientId);
+                    break;
+                }
+                Thread.sleep(1000);
+            }
+            alive.set(false);
+            clientSocket.close();
+            internetSocket.close();
             fwdThread.join(3000);
             bwdThread.join(3000);
         } catch (InterruptedException ignored) {
         }
 
-        // Cleanup (already closed by tcpMonitor, but just in case)
+        // Cleanup
         if (!clientSocket.isClosed()) clientSocket.close();
         if (!internetSocket.isClosed()) internetSocket.close();
 
@@ -473,7 +550,7 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                 }
             }
         } catch (Exception e) {
-            Log.w(TAG, "getServerBindAddress subnet scan failed: " + e.getMessage());
+            //             Log.w(TAG, "getServerBindAddress subnet scan failed: " + e.getMessage());
         }
 
         // Fallback: IP non-loopback pertama
@@ -494,72 +571,146 @@ final class Socks5ProxyHandler implements ProxyServer.Handler {
                 }
             }
         } catch (Exception e) {
-            Log.w(TAG, "getServerBindAddress fallback failed: " + e.getMessage());
+            //             Log.w(TAG, "getServerBindAddress fallback failed: " + e.getMessage());
         }
 
         // Ultimate fallback
-        Log.w(TAG, "No suitable IP found, using loopback");
+        //         Log.w(TAG, "No suitable IP found, using loopback");
         return InetAddress.getLoopbackAddress();
     }
 
     /**
-     * Bind DatagramSocket ke active internet network (mobile data).
-     * Tanpa ini, pada Android hotspot, UDP bisa di-route lewat interface yang salah → EHOSTUNREACH.
+     * Bind Socket (TCP) ke active internet network (prioritas VPN untuk Dark Tunnel).
      */
-    private void bindToInternetNetwork(DatagramSocket socket) {
+    private void bindToInternetNetwork(Socket socket) {
         try {
             if (context == null) {
-                Log.w(TAG, "bindToInternetNetwork: no context, skipping");
+                //                 Log.w(TAG, "bindToInternetNetwork: no context, skipping");
                 return;
             }
             ConnectivityManager cm = (ConnectivityManager)
                     context.getSystemService(Context.CONNECTIVITY_SERVICE);
             if (cm == null) {
-                Log.w(TAG, "bindToInternetNetwork: no ConnectivityManager");
+                //                 Log.w(TAG, "bindToInternetNetwork: no ConnectivityManager");
                 return;
             }
 
-            // Cari network yang punya internet (bukan hotspot/wlan yang serve client)
-            Network bestNetwork = null;
+            Network vpnNetwork = null;
+            Network cellularNetwork = null;
+            Network activeNetwork = cm.getActiveNetwork();
+
+            // Scan semua network
             for (Network network : cm.getAllNetworks()) {
                 android.net.NetworkCapabilities caps = cm.getNetworkCapabilities(network);
                 if (caps == null) continue;
 
                 boolean hasInternet = caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET);
                 boolean isValidated = caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED);
-                boolean notSuspended = true; // skip suspended check (API 28+)
 
-                // Skip hotspot tethering network
-                boolean isTethered = false;
-                try {
-                    android.net.LinkProperties lp = cm.getLinkProperties(network);
-                    if (lp != null) {
-                        String iface = lp.getInterfaceName();
-                        // Hotspot interface biasanya wlan0 (tapi bisa juga jadi tethering)
-                        // Mobile data biasanya rmnet_data0 atau similar
-                        logDebug( "Network " + network + ": iface=" + iface
-                                + " internet=" + hasInternet + " validated=" + isValidated);
-                    }
-                } catch (Exception ignored) {}
+                if (!hasInternet || !isValidated) continue;
 
-                if (hasInternet && isValidated && notSuspended) {
-                    bestNetwork = network;
-                    // Prefer mobile data (TRANSPORT_CELLULAR) over WiFi if both available
-                    if (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                        logInfo( "bindToInternetNetwork: using cellular network " + network);
-                        break;
-                    }
+                // Prioritas 1: VPN (untuk Dark Tunnel)
+                if (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) {
+                    vpnNetwork = network;
+                    logInfo("bindToInternetNetwork: found VPN network " + network);
+                    break;
+                }
+
+                // Simpan cellular sebagai fallback
+                if (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                    cellularNetwork = network;
                 }
             }
 
-            if (bestNetwork != null) {
-                bestNetwork.bindSocket(socket);
-                logInfo( "bindToInternetNetwork: bound to network " + bestNetwork);
+            // Pilih network berdasarkan prioritas
+            Network chosenNetwork = null;
+            if (vpnNetwork != null) {
+                chosenNetwork = vpnNetwork;
+                logInfo("bindToInternetNetwork: using VPN network");
+            } else if (activeNetwork != null) {
+                chosenNetwork = activeNetwork;
+                logInfo("bindToInternetNetwork: using active network");
+            } else if (cellularNetwork != null) {
+                chosenNetwork = cellularNetwork;
+                logInfo("bindToInternetNetwork: using cellular network (fallback)");
+            }
+
+            if (chosenNetwork != null) {
+                chosenNetwork.bindSocket(socket);
+                logInfo("bindToInternetNetwork: bound to network " + chosenNetwork);
             } else {
-                Log.w(TAG, "bindToInternetNetwork: no suitable internet network found");
+                //                 Log.w(TAG, "bindToInternetNetwork: no suitable internet network found");
             }
         } catch (Exception e) {
-            Log.w(TAG, "bindToInternetNetwork failed: " + e.getMessage());
+            //             Log.w(TAG, "bindToInternetNetwork failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Bind DatagramSocket ke active internet network (prioritas VPN untuk Dark Tunnel).
+     * Tanpa ini, pada Android hotspot, UDP bisa di-route lewat interface yang salah → EHOSTUNREACH.
+     */
+    private void bindToInternetNetwork(DatagramSocket socket) {
+        try {
+            if (context == null) {
+                //                 Log.w(TAG, "bindToInternetNetwork: no context, skipping");
+                return;
+            }
+            ConnectivityManager cm = (ConnectivityManager)
+                    context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) {
+                //                 Log.w(TAG, "bindToInternetNetwork: no ConnectivityManager");
+                return;
+            }
+
+            Network vpnNetwork = null;
+            Network cellularNetwork = null;
+            Network activeNetwork = cm.getActiveNetwork();
+
+            // Scan semua network
+            for (Network network : cm.getAllNetworks()) {
+                android.net.NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+                if (caps == null) continue;
+
+                boolean hasInternet = caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET);
+                boolean isValidated = caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+
+                if (!hasInternet || !isValidated) continue;
+
+                // Prioritas 1: VPN (untuk Dark Tunnel)
+                if (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) {
+                    vpnNetwork = network;
+                    logInfo("bindToInternetNetwork: found VPN network " + network);
+                    break; // VPN adalah prioritas tertinggi
+                }
+
+                // Simpan cellular sebagai fallback
+                if (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                    cellularNetwork = network;
+                }
+            }
+
+            // Pilih network berdasarkan prioritas
+            Network chosenNetwork = null;
+            if (vpnNetwork != null) {
+                chosenNetwork = vpnNetwork;
+                logInfo("bindToInternetNetwork: using VPN network");
+            } else if (activeNetwork != null) {
+                chosenNetwork = activeNetwork;
+                logInfo("bindToInternetNetwork: using active network");
+            } else if (cellularNetwork != null) {
+                chosenNetwork = cellularNetwork;
+                logInfo("bindToInternetNetwork: using cellular network (fallback)");
+            }
+
+            if (chosenNetwork != null) {
+                chosenNetwork.bindSocket(socket);
+                logInfo("bindToInternetNetwork: bound to network " + chosenNetwork);
+            } else {
+                //                 Log.w(TAG, "bindToInternetNetwork: no suitable internet network found");
+            }
+        } catch (Exception e) {
+            //             Log.w(TAG, "bindToInternetNetwork failed: " + e.getMessage());
         }
     }
 

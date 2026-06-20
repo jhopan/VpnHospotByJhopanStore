@@ -115,7 +115,7 @@ public class ProxyService extends Service {
     }
 
     private synchronized void startProxy(int httpPort, int socksPort) {
-        Log.e(TAG, "TRACE SERVICE START_PROXY http=" + httpPort + " socks=" + socksPort);
+        //         Log.e(TAG, "TRACE SERVICE START_PROXY http=" + httpPort + " socks=" + socksPort);
         stopProxy();
         try {
             counter.reset();

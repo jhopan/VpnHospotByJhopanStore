@@ -33,21 +33,21 @@ final class HttpProxyHandler implements ProxyServer.Handler {
         try {
             client.setSoTimeout(IDLE_TIMEOUT_MS);
             client.setTcpNoDelay(true);
-            Log.i(TAG, "client accepted from " + client.getRemoteSocketAddress());
-            Log.e(TAG, "TRACE HTTP HANDLE_START " + client.getRemoteSocketAddress());
+            //             Log.i(TAG, "client accepted from " + client.getRemoteSocketAddress());
+            //             Log.e(TAG, "TRACE HTTP HANDLE_START " + client.getRemoteSocketAddress());
 
             BufferedInputStream clientInput = new BufferedInputStream(client.getInputStream());
             OutputStream clientOutput = client.getOutputStream();
             byte[] headerBytes = readHeader(clientInput);
             if (headerBytes.length == 0) {
-                Log.w(TAG, "empty request from " + client.getRemoteSocketAddress());
+                //                 Log.w(TAG, "empty request from " + client.getRemoteSocketAddress());
                 return;
             }
 
             String header = new String(headerBytes, StandardCharsets.ISO_8859_1);
             String firstLine = header.split("\\r?\\n", 2)[0];
-            Log.i(TAG, "request: " + firstLine);
-            Log.e(TAG, "TRACE HTTP REQUEST " + firstLine);
+            //             Log.i(TAG, "request: " + firstLine);
+            //             Log.e(TAG, "TRACE HTTP REQUEST " + firstLine);
 
             String[] lines = header.split("\\r?\\n");
             String[] request = firstLine.split(" ", 3);
@@ -66,14 +66,14 @@ final class HttpProxyHandler implements ProxyServer.Handler {
                 clientOutput.write("HTTP/1.1 200 Connection Established\r\nProxy-Agent: JhopanStore\r\n\r\n"
                         .getBytes(StandardCharsets.ISO_8859_1));
                 clientOutput.flush();
-                Log.i(TAG, "CONNECT tunnel established: " + host + ":" + port);
+                //                 Log.i(TAG, "CONNECT tunnel established: " + host + ":" + port);
                 tunnel(client, clientInput, remote, counter);
                 return;
             }
 
             Target target = resolveTarget(request[1], lines);
             if (target == null) {
-                Log.w(TAG, "cannot resolve target for: " + firstLine);
+                //                 Log.w(TAG, "cannot resolve target for: " + firstLine);
                 sendError(clientOutput, 400, "Bad Request");
                 return;
             }
@@ -84,10 +84,10 @@ final class HttpProxyHandler implements ProxyServer.Handler {
             remoteOutput.write(rewritten);
             remoteOutput.flush();
             counter.addUpload(rewritten.length);
-            Log.i(TAG, "HTTP tunnel established: " + target.host + ":" + target.port);
+            //             Log.i(TAG, "HTTP tunnel established: " + target.host + ":" + target.port);
             tunnel(client, clientInput, remote, counter);
         } catch (Exception e) {
-            Log.e(TAG, "handle failed: " + e.getClass().getSimpleName() + " - " + e.getMessage(), e);
+            //             Log.e(TAG, "handle failed: " + e.getClass().getSimpleName() + " - " + e.getMessage(), e);
         } finally {
             BytePump.close(client);
             if (remote != null) BytePump.close(remote);
@@ -99,9 +99,9 @@ final class HttpProxyHandler implements ProxyServer.Handler {
         socket.setTcpNoDelay(true);
         socket.setSoTimeout(IDLE_TIMEOUT_MS);
         bindToVpnOrActiveNetwork(socket);
-        Log.i(TAG, "connecting remote " + host + ":" + port);
+        //         Log.i(TAG, "connecting remote " + host + ":" + port);
         socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MS);
-        Log.i(TAG, "remote connected " + host + ":" + port);
+        //         Log.i(TAG, "remote connected " + host + ":" + port);
         return socket;
     }
 
@@ -117,11 +117,11 @@ final class HttpProxyHandler implements ProxyServer.Handler {
             for (Network network : cm.getAllNetworks()) {
                 NetworkCapabilities caps = cm.getNetworkCapabilities(network);
                 if (caps == null) continue;
-                Log.e(TAG, "TRACE HTTP NETWORK " + describeNetwork(caps));
+                //                 Log.e(TAG, "TRACE HTTP NETWORK " + describeNetwork(caps));
                 if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
                         && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
                     chosen = network;
-                    Log.e(TAG, "TRACE HTTP BIND_SELECT VPN");
+                    //                     Log.e(TAG, "TRACE HTTP BIND_SELECT VPN");
                     break;
                 }
             }
@@ -132,19 +132,19 @@ final class HttpProxyHandler implements ProxyServer.Handler {
                     NetworkCapabilities caps = cm.getNetworkCapabilities(active);
                     if (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
                         chosen = active;
-                        Log.e(TAG, "TRACE HTTP BIND_SELECT ACTIVE " + describeNetwork(caps));
+                        //                         Log.e(TAG, "TRACE HTTP BIND_SELECT ACTIVE " + describeNetwork(caps));
                     }
                 }
             }
 
             if (chosen != null) {
                 chosen.bindSocket(socket);
-                Log.e(TAG, "TRACE HTTP BOUND_SOCKET");
+                //                 Log.e(TAG, "TRACE HTTP BOUND_SOCKET");
             } else {
-                Log.e(TAG, "TRACE HTTP NO_NETWORK_BOUND");
+                //                 Log.e(TAG, "TRACE HTTP NO_NETWORK_BOUND");
             }
         } catch (Exception e) {
-            Log.w(TAG, "bind network failed: " + e.getMessage());
+            //             Log.w(TAG, "bind network failed: " + e.getMessage());
         }
     }
 

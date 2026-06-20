@@ -33,34 +33,34 @@ final class ProxyServer {
         serverSocket.setReuseAddress(true);
         serverSocket.bind(new java.net.InetSocketAddress("0.0.0.0", port));
         running = true;
-        Log.e(TAG, "TRACE " + name + " LISTEN " + serverSocket.getLocalSocketAddress());
+        //         Log.e(TAG, "TRACE " + name + " LISTEN " + serverSocket.getLocalSocketAddress());
 
         acceptThread = new Thread(() -> {
-            Log.e(TAG, "TRACE " + name + " ACCEPT_THREAD_START");
+            //             Log.e(TAG, "TRACE " + name + " ACCEPT_THREAD_START");
             while (running) {
                 try {
                     Socket client = serverSocket.accept();
                     client.setTcpNoDelay(true);
-                    Log.e(TAG, "TRACE " + name + " ACCEPT " + client.getRemoteSocketAddress());
+                    //                     Log.e(TAG, "TRACE " + name + " ACCEPT " + client.getRemoteSocketAddress());
 
                     Thread worker = new Thread(() -> {
-                        Log.e(TAG, "TRACE " + name + " WORKER_START " + client.getRemoteSocketAddress());
+                        //                         Log.e(TAG, "TRACE " + name + " WORKER_START " + client.getRemoteSocketAddress());
                         try {
                             handler.handle(client, counter);
-                            Log.e(TAG, "TRACE " + name + " WORKER_DONE " + client.getRemoteSocketAddress());
+                            //                             Log.e(TAG, "TRACE " + name + " WORKER_DONE " + client.getRemoteSocketAddress());
                         } catch (Throwable t) {
-                            Log.e(TAG, "TRACE " + name + " WORKER_CRASH " + t.getClass().getSimpleName() + " " + t.getMessage(), t);
+                            //                             Log.e(TAG, "TRACE " + name + " WORKER_CRASH " + t.getClass().getSimpleName() + " " + t.getMessage(), t);
                             try { client.close(); } catch (Exception ignored) {}
                         }
                     }, name + "-worker");
                     worker.start();
                 } catch (Exception e) {
                     if (running) {
-                        Log.e(TAG, "TRACE " + name + " ACCEPT_ERROR " + e.getClass().getSimpleName() + " " + e.getMessage(), e);
+                        //                         Log.e(TAG, "TRACE " + name + " ACCEPT_ERROR " + e.getClass().getSimpleName() + " " + e.getMessage(), e);
                     }
                 }
             }
-            Log.e(TAG, "TRACE " + name + " ACCEPT_THREAD_STOP");
+            //             Log.e(TAG, "TRACE " + name + " ACCEPT_THREAD_STOP");
         }, name + "-accept");
         acceptThread.start();
     }
@@ -70,6 +70,6 @@ final class ProxyServer {
         try {
             if (serverSocket != null) serverSocket.close();
         } catch (Exception ignored) {}
-        Log.e(TAG, "TRACE " + name + " STOPPED");
+        //         Log.e(TAG, "TRACE " + name + " STOPPED");
     }
 }
