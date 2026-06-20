@@ -410,13 +410,21 @@ public class MainActivity extends Activity {
         String message = "VPN Hotspot by JhopanStore\n"
                 + "Version: " + version + "\n\n"
                 + "Telegram: https://t.me/jhopan_05\n"
-                + "Website: https://jhopanstore.my.id";
+                + "Website: https://jhopanstore.my.id\n"
+                + "Trakteer: https://trakteer.id/jhopan";
+        
+        String[] options = {"Telegram", "Website", "Trakteer"};
         new AlertDialog.Builder(this)
                 .setTitle("Info Developer")
                 .setMessage(message)
-                .setPositiveButton("Telegram", (dialog, which) -> openUrl("https://t.me/jhopan_05"))
-                .setNegativeButton("Website", (dialog, which) -> openUrl("https://jhopanstore.my.id"))
-                .setNeutralButton("Tutup", null)
+                .setItems(options, (dialog, which) -> {
+                    switch (which) {
+                        case 0: openUrl("https://t.me/jhopan_05"); break;
+                        case 1: openUrl("https://jhopanstore.my.id"); break;
+                        case 2: openUrl("https://trakteer.id/jhopan"); break;
+                    }
+                })
+                .setPositiveButton("Tutup", null)
                 .show();
     }
 
